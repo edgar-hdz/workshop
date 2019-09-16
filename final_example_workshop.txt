@@ -1,0 +1,141 @@
+!pip install selenium
+!apt install chromium-chromedriver
+!apt-get update # to update ubuntu to correctly run apt install
+!apt install chromium-chromedriver
+!cp /usr/lib/chromium-browser/chromedriver /usr/bin
+import sys
+sys.path.insert(0,'/usr/lib/chromium-browser/chromedriver')
+
+
+#####################################################################################
+
+from selenium import webdriver
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument('--headless')
+chrome_options.add_argument('--no-sandbox')
+chrome_options.add_argument('--disable-dev-shm-usage')
+wd = webdriver.Chrome('chromedriver',chrome_options=chrome_options)
+wd.get("https://www.webite-url.com")
+
+#####################################################################################
+
+import datetime
+import calendar
+import re
+import pandas as pd
+import numpy as np
+
+#####################################################################################
+
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
+
+#####################################################################################
+
+browser = webdriver.Chrome('chromedriver',chrome_options=chrome_options)
+browser.get('http://www.google.com')
+search = browser.find_element_by_name('q')
+search.send_keys("mexico to zurich 18 december")
+search.send_keys(Keys.RETURN) # hit return after you enter search text
+print("Done")
+
+el = browser.find_element_by_xpath("//div[@id='search']//div[@id='flun']")
+print(el.text)
+
+
+#####################################################################################
+
+
+browser = webdriver.Chrome('chromedriver',chrome_options=chrome_options)
+url ="https://www.google.com"
+browser.get(url)
+WebDriverWait(browser,10000).until(EC.visibility_of_element_located((By.TAG_NAME,'body')))
+
+#####################################################################################
+
+def flight_details(departure, destination, date, num_days, klass):
+    date_1 = datetime.datetime.strptime(date, "%d/%m/%y")
+    month1 = calendar.month_name[date_1.month]
+    end_date = date_1 + datetime.timedelta(days=num_days)
+    month2 = calendar.month_name[end_date.month]
+    start_day = date_1.day
+    end_day = end_date.day
+
+    return "{} to {} from {} {} to {} {} {}".format(departure, destination, start_day,month1,end_day, month2,klass)
+
+#####################################################################################
+
+flight_details("Zurich", "Mexico City", "5/10/19",15,"")
+
+#####################################################################################
+
+list_of_days = ["5/10/19","5/11/19","5/12/19"]
+list_prices = []
+
+#####################################################################################
+
+for ldays in list_of_days:
+    Mainframe = browser.find_element_by_xpath("//input[@class='gLFyf gsfi']")
+    Mainframe.clear()
+    Mainframe.send_keys(flight_details("Zurich", "Mexico City", ldays,15,"Business"))
+    print("Found")
+    Mainframe.send_keys(Keys.ENTER)
+    WebDriverWait(browser,10000).until(EC.visibility_of_element_located((By.TAG_NAME,'body')))
+    Mainframe = browser.find_element_by_xpath("//div[cite[text()[contains(.,'www.google.com/flights')]]]//following-sibling::div[5]")
+    print("Found flight details")
+    list_prices.append(Mainframe.text)
+
+browser.close()
+
+
+#####################################################################################
+
+
+a = list_prices[0]
+sentences = [p for p in a.split('\n') if p]
+
+
+frame = []
+for k in range(len(list_of_days)):
+    i = 0
+
+    time_list,price_list = [],[]
+
+    for sent in list_prices[k].split("\n"):
+        #print("{}: ".format(i)+ sent)
+        if sent == sentences[-1]:
+            break
+        if i%2==0:
+            a = re.search(r'\d(.*)\d', sent).group(0)
+            time_list.append(a)
+            #print(a)
+        else:
+            a = re.search(r'\W(.*)\d', sent).group(0)
+            price_list.append(a)
+            #print(a)
+        i+=1
+        if i == 10:
+            break
+
+    dates = [list_of_days[k] for x in time_list]
+    num_of_days = [17 for x in time_list]
+    #vpn_list = ["{}".format(vpn_country) for x in time_list]
+
+    #df = {'price': price_list, 'duration': time_list,'dates':dates,'num_of_days':num_of_days,'VPN':vpn_list}
+    df = {'price': price_list, 'duration': time_list,'dates':dates,'num_of_days':num_of_days}
+
+    frame.append(pd.DataFrame(df))
+
+#####################################################################################
+
+df_save = pd.concat(frame).reset_index().drop(columns="index")
+df_save.head(10)
+
+#df_save.to_csv("df_{}.csv".format(vpn_country))
+
+
+
